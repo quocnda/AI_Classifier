@@ -62,6 +62,57 @@ def loadCommonData() :
     print('Common :',len(common_elemetns))
     print("****************")
     return common_elemetns,dict_map_namefile_to_data
+
+def getSampleData(namefile) :
+    input_folder = '/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/Hima'
+    features = ['B04B','B05B','B06B','B09B','B10B','B11B',
+                'B12B','B14B','B16B','I2B','I4B','IRB','VSB','WVB']
+    dict_map_feature_to_data = {
+        "B04B" : [],
+        "B05B" : [],
+        'B06B' : [],
+        'B09B' : [],
+        'B10B' : [],
+        'B11B' : [],
+                'B12B' : [],
+        'B14B' : [],
+        'B16B' : [],
+        'I2B' : [],
+        'I4B' : [],
+        'IRB' : [],
+        'VSB' : [],
+        'WVB' : []
+    }
+
+    months = ['04','10']
+
+    for month in months :
+        print('Months :',month)
+        for band in features:
+            path_month = input_folder + '/'+band+'/2019/'+month
+            listname_day = os.listdir(path_month)
+            listname_day.sort()
+            band_data = []
+            for day in listname_day :
+                path_day = path_month + '/' + day
+                listfile_day = os.listdir(path_day)
+                listfile_day.sort()
+                for file in listfile_day :
+                    list_name_file = file.split('_')
+                    name_ = list_name_file[1]
+                    name_ = name_.replace('.Z','')
+                    if name_ == namefile :
+                        name_file = path_day + '/' + file
+                        image = cv2.imread(name_file, cv2.IMREAD_UNCHANGED)
+                        band_data.append(image)
+                        break
+            band_temp_data = dict_map_feature_to_data[band]
+            for k in band_data :
+                band_temp_data.append(k)
+    for i in dict_map_feature_to_data :
+        print(i, '    :',len(dict_map_feature_to_data[i]))
+    return dict_map_feature_to_data
+
 def prepareInputData() :
     input_folder = '/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/Hima'
     features = ['B04B','B05B','B06B','B09B','B10B','B11B',
@@ -113,6 +164,8 @@ def prepareInputData() :
     for i in dict_map_feature_to_data :
         print(i, '    :',len(dict_map_feature_to_data[i]))
     return dict_map_feature_to_data
+
+
 def prepareOutputData() :
     elements_common,dict_ = loadCommonData()
     element_com = []
@@ -212,11 +265,11 @@ def printDetailsReport(y_true,y_pred) :
 def loadTrainTestData() :
     data_features = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataInput.csv')
     data_output = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataOutput.csv')
-    print(data_output['Output'].value_counts())
+    # print(data_output['Output'].value_counts())
     sm  =SMOTE()
     X_sm,Y_sm = sm.fit_resample(data_features,data_output)
-    print(X_sm.shape,Y_sm.shape) 
-
+    # print(X_sm.shape,Y_sm.shape) 
+    print(Y_sm.value_counts())
     X_train,X_test,y_train,y_test = train_test_split(X_sm,Y_sm,test_size=0.2)
     print("Xtrain, Xtest :",X_train.shape,', ',X_test.shape)
     return X_train,X_test,y_train,y_test
@@ -264,23 +317,51 @@ def K_FoldCross(X,y) :
     print("Result :",results)
 def gridSearchCV() :
     X_train,X_test,y_train,y_test = loadTrainTestData()
+    print('readyyy')
     param_grid = {
-    'criterion': ['gini', 'entropy'],
-    'max_depth': [8,14]
-    }
-    skf = StratifiedKFold(n_splits=3,shuffle=True)
-    model = DecisionTreeClassifier()
+    'n_estimators': [100, 200],
+    'learning_rate': [0.01, 0.1]
+}
+
+    skf = StratifiedKFold(n_splits=2,shuffle=True)
+    model = xgb.XGBClassifier(random_state = 42)
     grid = GridSearchCV(model,param_grid=param_grid,cv = skf,scoring='f1',verbose=3,n_jobs=-1)
     grid.fit(X_train,y_train)
     print("Best params :",grid.best_params_)
     print("Best score :",grid.best_score_)
     model = grid.best_estimator_
+
+    print('**********')
+    pred_test = model.predict(X_test)
+    
+    print("Accuracy score :",accuracy_score(y_test,pred_test))
+    print("Precision score :",precision_score(y_test,pred_test))
+    print("Recall Score :",recall_score(y_test,pred_test))
+    print("Confu matrics :")
+    print(confusion_matrix(y_test,pred_test))
+    print('Report :')
+    printDetailsReport(y_test,pred_test)
+    print("Model.score : ",model.score(X_test,y_test))
+
+
+
     saveTheBestModel(model=model)
     print("save successfully")
-def saveBarChartImage(data) :
+def saveBarChartImage(data,link) :
     fig,ax = plt.subplots()
     a = sns.countplot(x = data)
-    fig.savefig('/home/quoc/works/Learn/learnLLMs/AI_classification/dataOut.png')
+    fig.savefig(link)
+    plt.close()
+def saveDensity(name,data,link) :
+    plt.figure(figsize=(10, 6))
+    sns.histplot(data, kde=True)
+    plt.title(f'Density Plot for {name}')
+    plt.xlabel('B04B')
+    plt.ylabel('Density')
+
+    # Lưu biểu đồ
+    plt.savefig(link)
+    plt.close()
 def savePieChertImage(data) :
 # Đếm số lượng mỗi giá trị (0 và 1)
     counts = data.value_counts()

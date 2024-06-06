@@ -10,8 +10,32 @@ def main() :
     # print("*******")
     # print('Random Forest Model')
     # loadRandomForestModel()
+    
+    getSampleData('201904230200')
+    # prepareOutputData()
 
-    prepareOutputData()
+
+    # data_features = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataInput.csv')
+    # data_out =  pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataOutput.csv')
+    # K_FoldCross(data_features,data_out)
+    
+
+
+    # gridSearchCV()
+
+
+
+    # loadTrainTestData()
+
+
+
+    # features = ['B04B','B05B','B06B','B09B','B10B','B11B',
+    #             'B12B','B14B','B16B','I2B','I4B','IRB','VSB','WVB']
+    # data_features = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataInput.csv')   
+    # for i in features :
+    #     saveDensity(i,data_features[i],f'/home/quoc/works/Learn/learnLLMs/AI_classification/ImageChart/{i}.png')
+
+
 
     # data_features = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataInput.csv')
     # model = loadTheModel()
