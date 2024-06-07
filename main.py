@@ -11,13 +11,31 @@ def main() :
     # print('Random Forest Model')
     # loadRandomForestModel()
     
-    getSampleData('201904230200')
+    data_frame_pixel = getSampleData('201904230200')
+    model = loadTheModel('/home/quoc/works/Learn/learnLLMs/AI_classification/myBestModel.sav')
+    a = model.predict(data_frame_pixel)
+    a = a.reshape(90,250)
+    print(a)
+    plt.imshow(a,cmap = 'gray')
+    plt.savefig('/home/quoc/works/Learn/learnLLMs/AI_classification/ImageChart/t.png')
+    plt.close()
+
+    # data = getFinalData()
+    # a = data['Output'].value_counts()
+    # print(a)
+    # savePieChertImage(data['Output'])
     # prepareOutputData()
 
+    # mergeDataOutput()
+    
 
-    # data_features = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataInput.csv')
-    # data_out =  pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataOutput.csv')
-    # K_FoldCross(data_features,data_out)
+    # data = getFinalData()
+    # data_features = data.drop(columns=['Output'])
+    # data_out = data['Output']
+    # # print(dataOutput.value_counts())
+    # sm  =SMOTE()
+    # X_sm,Y_sm = sm.fit_resample(data_features,data_out)
+    # K_FoldCross(X_sm,Y_sm)
     
 
 

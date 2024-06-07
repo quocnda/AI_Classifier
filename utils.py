@@ -111,7 +111,23 @@ def getSampleData(namefile) :
                 band_temp_data.append(k)
     for i in dict_map_feature_to_data :
         print(i, '    :',len(dict_map_feature_to_data[i]))
-    return dict_map_feature_to_data
+    
+    temp_image = []
+    for i in features :
+        image = dict_map_feature_to_data[i][0]
+        temp_image.append(image)
+    
+    temp_image = np.array(temp_image)
+    bands,rows,cols = temp_image.shape
+    temp_image = temp_image.reshape((bands,rows*cols))
+    temp_image = temp_image.transpose()
+    df = pd.DataFrame(temp_image, columns = features)
+
+    scaler = MinMaxScaler()
+    scaler.fit(df)
+    df = scaler.transform(df)
+    print(df)
+    return df
 
 def prepareInputData() :
     input_folder = '/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/Hima'
@@ -253,9 +269,18 @@ def mergeDataOutput() :
         df_output1 = pd.DataFrame(tmp_output,columns = ['Output'])
         df_output = pd.concat([df_output,df_output1],axis=0)
     
-    df_output['Output'] = df_output['Output'].apply(lambda x: 0 if x<0 else 1)
+    # df_output['Output'] = df_output['Output'].apply(lambda x: 0 if 0<x and x<0.5 else 1)
     print(df_output)
-    # writeToCSV(df_output,'/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataOutput.csv')
+    writeToCSV(df_output,'/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataOutput.csv')
+
+def getFinalData() :
+    data_features = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataInput.csv')
+    data_out =  pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataOutput.csv')
+    data = pd.concat([data_features,data_out],axis=1)
+    df_filter = data[data['Output'] != -np.inf]
+    df_filter['Output'] = df_filter['Output'].apply(lambda x: 0 if x<0.5 else 1)
+    return df_filter
+
 def writeToCSV(dataframe,file) :
     dataframe.to_csv(file,index = False)
 
@@ -263,11 +288,12 @@ def printDetailsReport(y_true,y_pred) :
     print(classification_report(y_true,y_pred))
 
 def loadTrainTestData() :
-    data_features = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataInput.csv')
-    data_output = pd.read_csv('/home/quoc/works/Learn/learnLLMs/data/DATAForBTL/DATA_SV/dataOutput.csv')
-    # print(data_output['Output'].value_counts())
+    data = getFinalData()
+    dataInput = data.drop(columns=['Output'])
+    dataOutput = data['Output']
+    # print(dataOutput.value_counts())
     sm  =SMOTE()
-    X_sm,Y_sm = sm.fit_resample(data_features,data_output)
+    X_sm,Y_sm = sm.fit_resample(dataInput,dataOutput)
     # print(X_sm.shape,Y_sm.shape) 
     print(Y_sm.value_counts())
     X_train,X_test,y_train,y_test = train_test_split(X_sm,Y_sm,test_size=0.2)
@@ -303,8 +329,8 @@ def saveTheModel(model) :
 def saveTheBestModel(model) :
     file_name = '/home/quoc/works/Learn/learnLLMs/AI_classification/myBestModel.sav'
     pickle.dump(model,open(file_name,'wb'))
-def loadTheModel() :
-    file = '/home/quoc/works/Learn/learnLLMs/AI_classification/myModel.sav'
+def loadTheModel(link) :
+    file = link
     model = pickle.load(open(file,'rb'))
     return model
 def K_FoldCross(X,y) :
@@ -329,10 +355,16 @@ def gridSearchCV() :
     grid.fit(X_train,y_train)
     print("Best params :",grid.best_params_)
     print("Best score :",grid.best_score_)
-    model = grid.best_estimator_
+    n_esti_best = grid.best_params_['n_estimators']
+    learniing_rate_best = grid.best_params_['learning_rate']
+    model_best = xgb.XGBClassifier(random_state = 42,learning_rate = learniing_rate_best,n_estimators = n_esti_best)
+    model_best.fit(X_train,y_train)
 
     print('**********')
-    pred_test = model.predict(X_test)
+
+    print(f"So with n_estimators = {n_esti_best}, and learning_rate = {learniing_rate_best}, we have the best model")
+    print("Now, we start to caculate the score about the model!!!")
+    pred_test = model_best.predict(X_test)
     
     print("Accuracy score :",accuracy_score(y_test,pred_test))
     print("Precision score :",precision_score(y_test,pred_test))
@@ -341,12 +373,13 @@ def gridSearchCV() :
     print(confusion_matrix(y_test,pred_test))
     print('Report :')
     printDetailsReport(y_test,pred_test)
-    print("Model.score : ",model.score(X_test,y_test))
+    print("Model.score : ",model_best.score(X_test,y_test))
 
 
 
-    saveTheBestModel(model=model)
+    saveTheBestModel(model=model_best)
     print("save successfully")
+
 def saveBarChartImage(data,link) :
     fig,ax = plt.subplots()
     a = sns.countplot(x = data)
@@ -362,6 +395,7 @@ def saveDensity(name,data,link) :
     # Lưu biểu đồ
     plt.savefig(link)
     plt.close()
+    print('svae success')
 def savePieChertImage(data) :
 # Đếm số lượng mỗi giá trị (0 và 1)
     counts = data.value_counts()
